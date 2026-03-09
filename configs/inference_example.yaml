@@ -1,0 +1,20 @@
+experiment_project: 'Wan22Video-StyleTransfer'
+experiment_name: 'inference'
+model_id: "Wan-AI/Wan2.1-T2V-14B-Diffusers"  # or local path to base model
+output_root: './output'
+use_lora: True
+guidance_scale: 5.0
+
+dataset:
+  video_root:  './example_data/input_videos'
+  video_root2: './example_data/input_videos'     # Only needed when is_one2three=False
+  first_root:  './example_data/reference_images'
+  is_one2three: True
+  height: 768
+  width: 768
+  sample_n_frames: 81
+  fps: 24
+  num_workers: 4
+  shuffle: False
+  drop_last: True
+  pin_memory: True
