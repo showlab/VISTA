@@ -1,4 +1,4 @@
-# Wan22Video: Video Style Transfer
+# VISTA
 
 Video style transfer based on [Wan 2.2](https://github.com/Wan-Video/Wan2.1) with Image Prompt Adapter (IPA) and LoRA fine-tuning.
 
@@ -15,8 +15,8 @@ Wan22Video/
 ├── configs/
 │   └── inference_example.yaml
 ├── example_data/
-│   ├── input_videos/         # 5 example content videos (768x768, 81 frames)
-│   ├── reference_images/     # 5 example style reference images (768x768)
+│   ├── input_videos/         # 3 example content videos (768x768, 81 frames)
+│   ├── reference_images/     # 3 example style reference images (768x768)
 │   └── output_videos/        # Example output videos
 ├── inference.sh              # Example inference command
 ├── requirements.txt

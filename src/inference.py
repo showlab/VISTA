@@ -34,6 +34,70 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
+def _project_root() -> str:
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def _is_placeholder_path(value: Optional[str]) -> bool:
+    if value in (None, "", "null", "None"):
+        return False
+    normalized = str(value).strip().lower()
+    return (
+        normalized.startswith("/path/to/")
+        or normalized.startswith("path/to/")
+        or normalized.startswith("./path/to/")
+    )
+
+
+def _resolve_local_path(value: Optional[str], project_root: str) -> Optional[str]:
+    if value in (None, "", "null", "None"):
+        return None
+
+    path = os.path.expanduser(str(value).strip())
+    if os.path.isabs(path):
+        return path
+
+    abs_cwd = os.path.abspath(path)
+    if os.path.exists(abs_cwd):
+        return abs_cwd
+
+    abs_project = os.path.join(project_root, path)
+    if os.path.exists(abs_project):
+        return abs_project
+
+    return path
+
+
+def _resolve_runtime_assets(opt, args_dict) -> None:
+    """Allow README placeholder paths while preferring bundled project assets."""
+    project_root = _project_root()
+    bundled_ckpt = os.path.join(project_root, "checkpoints", "20000.ckpt")
+    bundled_ckpt_exists = os.path.isfile(bundled_ckpt)
+
+    ckpt_arg = args_dict.get("ckpt_path", "")
+    if _is_placeholder_path(ckpt_arg) and bundled_ckpt_exists:
+        opt.ckpt_path = bundled_ckpt
+        print(f"[Infer] Using bundled checkpoint for --ckpt_path: {bundled_ckpt}")
+    else:
+        opt.ckpt_path = _resolve_local_path(ckpt_arg, project_root)
+
+    ipa_arg = args_dict.get("ipa_checkpoint", "")
+    if _is_placeholder_path(ipa_arg) and bundled_ckpt_exists:
+        opt.ipa_checkpoint = bundled_ckpt
+        print(f"[Infer] Using bundled checkpoint for --ipa-checkpoint: {bundled_ckpt}")
+    else:
+        opt.ipa_checkpoint = _resolve_local_path(ipa_arg, project_root)
+
+    siglip_arg = args_dict.get("siglip_model", "")
+    if _is_placeholder_path(siglip_arg):
+        opt.siglip_model = "google/siglip-so400m-patch14-384"
+        print("[Infer] Using default SigLIP model id: google/siglip-so400m-patch14-384")
+    elif siglip_arg in (None, "", "null", "None"):
+        opt.siglip_model = None
+    else:
+        opt.siglip_model = siglip_arg
+
+
 # ---------------------------------------------------------------------------
 # Dataset for inference-only mode (no ground truth needed)
 # ---------------------------------------------------------------------------
@@ -525,6 +589,8 @@ class StyleTransferInference(torch.nn.Module):
             start_index = 0
         if start_index:
             print(f"[Infer] Start from index: {start_index}")
+        max_samples = int(getattr(self.hparams, "max_samples", -1) or -1)
+        processed = 0
 
         if self.using_lora:
             ckpt_path = getattr(self.hparams, "ckpt_path", None)
@@ -551,6 +617,9 @@ class StyleTransferInference(torch.nn.Module):
         for batch_idx, batch in enumerate(data_loader):
             if batch_idx < start_index:
                 continue
+            if max_samples > 0 and processed >= max_samples:
+                print(f"[Infer] Reached max_samples={max_samples}. Stop inference.")
+                break
             model_input = batch["pixel_values"].to(device)   # [1, C, F, H, W]
             model_input2 = batch.get("pixel_values2", None)
             if model_input2 is not None:
@@ -610,6 +679,7 @@ class StyleTransferInference(torch.nn.Module):
             save_path = os.path.join(save_root, f"{sample_id}.mp4")
             export_to_video(video_generate, output_video_path=save_path, fps=fps)
             print(f"[Infer] Saved: {save_path}")
+            processed += 1
 
             if self.ipa_enabled:
                 self.transformer.clear_ipa_tokens()
@@ -630,6 +700,7 @@ def main() -> None:
     parser.add_argument("--ipa-num-tokens", type=int, default=128, help="Number of IPA tokens")
     parser.add_argument("--ipa-alpha", type=float, default=0.5, help="Blending factor for IPA contributions")
     parser.add_argument("--ipa-zero", action="store_true", help="Force zero IPA tokens (debug)")
+    parser.add_argument("--max-samples", type=int, default=-1, help="Maximum number of samples to run (-1 for all)")
     args, extras = parser.parse_known_args()
     args_dict = vars(args)
 
@@ -641,7 +712,7 @@ def main() -> None:
         OmegaConf.create({"num_gpus": int(torch.cuda.device_count())}),
     )
 
-    opt.ckpt_path = None if args_dict["ckpt_path"] in ("", "null", "None") else args_dict["ckpt_path"]
+    _resolve_runtime_assets(opt, args_dict)
 
     L.seed_everything(opt.seed)
 
