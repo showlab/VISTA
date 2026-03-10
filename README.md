@@ -1,4 +1,4 @@
-# VISTA
+# VISTA: Triplet-Supervised Video Style Transfer with Diffusion Transformers
 
 Video style transfer based on [Wan 2.2](https://github.com/Wan-Video/Wan2.1) with Image Prompt Adapter (IPA) and LoRA fine-tuning.
 
