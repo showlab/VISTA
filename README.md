@@ -2,7 +2,7 @@
 
 **Yiren Song, Wangzi Yao, Haofan Wang, Mike Zheng Shou**
 
-[![Paper](https://img.shields.io/badge/Paper-NeurIPS%202026-blue)](https://arxiv.org/abs/2605.17312) [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/your-org/vista-dataset) [![Models](https://img.shields.io/badge/Models-HuggingFace-green)](https://huggingface.co/your-org/vista-models)
+[![Paper](https://img.shields.io/badge/Paper-Arxiv%202026-blue)](https://arxiv.org/abs/2605.17312) [![Dataset](https://img.shields.io/badge/Dataset-HuggingFace-orange)](https://huggingface.co/your-org/vista-dataset) [![Models](https://img.shields.io/badge/Models-HuggingFace-green)](https://huggingface.co/your-org/vista-models)
 
 ---
 
